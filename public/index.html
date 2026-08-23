@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRUD Clientes & Latency Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Gerenciador de Clientes</h1>
+      <p class="subtitle">Métricas de latência de API em tempo real</p>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- Form Section -->
+      <section class="card form-card">
+        <h2>Cadastrar Cliente</h2>
+        <form id="clientForm">
+          <div class="form-group">
+            <label for="name">Nome Completo</label>
+            <input type="text" id="name" required placeholder="Ex: João Silva">
+          </div>
+          <div class="form-group">
+            <label for="email">E-mail</label>
+            <input type="email" id="email" required placeholder="Ex: joao@empresa.com">
+          </div>
+          <div class="form-group">
+            <label for="phone">Telefone</label>
+            <input type="text" id="phone" placeholder="Ex: (11) 99999-9999">
+          </div>
+          <div class="form-group">
+            <label for="delay">Simular Delay da API (ms)</label>
+            <input type="number" id="delay" min="0" value="0" placeholder="0 para latência real">
+          </div>
+          <button type="submit" class="btn-primary">Cadastrar</button>
+        </form>
+      </section>
+
+      <!-- Latency & Log Section -->
+      <section class="card stats-card">
+        <h2>Últimas Latências (ms)</h2>
+        <div class="stats-container">
+          <div class="stat-box">
+            <span class="stat-label">Último GET</span>
+            <span id="getLastTime" class="stat-val">--</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Último POST</span>
+            <span id="postLastTime" class="stat-val">--</span>
+          </div>
+        </div>
+
+        <h3>Log de Requisições</h3>
+        <div class="log-console" id="logConsole">
+          <div class="log-placeholder">Nenhuma requisição feita ainda.</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Client List Section -->
+    <section class="card list-card">
+      <div class="list-header">
+        <h2>Clientes Cadastrados</h2>
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Pesquisar por nome ou e-mail...">
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Telefone</th>
+              <th>Cadastrado em</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="clientTableBody">
+            <tr>
+              <td colspan="6" class="table-placeholder">Nenhum cliente cadastrado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
