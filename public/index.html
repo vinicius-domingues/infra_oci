@@ -28,6 +28,10 @@
             <input type="email" id="email" required placeholder="Ex: joao@empresa.com">
           </div>
           <div class="form-group">
+            <label for="cpf">CPF</label>
+            <input type="text" id="cpf" placeholder="Ex: 123.456.789-00">
+          </div>
+          <div class="form-group">
             <label for="phone">Telefone</label>
             <input type="text" id="phone" placeholder="Ex: (11) 99999-9999">
           </div>
@@ -65,7 +69,7 @@
       <div class="list-header">
         <h2>Clientes Cadastrados</h2>
         <div class="search-box">
-          <input type="text" id="searchInput" placeholder="Pesquisar por nome ou e-mail...">
+          <input type="text" id="searchInput" placeholder="Pesquisar por CPF, e-mail ou nome...">
         </div>
       </div>
       
@@ -76,6 +80,7 @@
               <th>ID</th>
               <th>Nome</th>
               <th>E-mail</th>
+              <th>CPF</th>
               <th>Telefone</th>
               <th>Cadastrado em</th>
               <th>Ações</th>
@@ -83,7 +88,7 @@
           </thead>
           <tbody id="clientTableBody">
             <tr>
-              <td colspan="6" class="table-placeholder">Nenhum cliente cadastrado.</td>
+              <td colspan="7" class="table-placeholder">Nenhum cliente cadastrado.</td>
             </tr>
           </tbody>
         </table>

@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware to inject an artificial delay if requested (to test latency counters and indices behavior later)
+// Middleware to inject an artificial delay if requested
 app.use((req, res, next) => {
   const delay = parseInt(req.query.delay) || 0;
   if (delay > 0) {
@@ -18,18 +18,28 @@ app.use((req, res, next) => {
   }
 });
 
-// GET /api/clients - List clients (supports search by email or name to show indexing difference later)
+// GET /api/clients - List clients (with limit and search by name, email or cpf)
 app.get('/api/clients', (req, res) => {
   const queryVal = req.query.search;
+  const limit = parseInt(req.query.limit) || 50; // default to 50 for performance
+  
   if (queryVal) {
-    const sql = `SELECT * FROM clients WHERE email LIKE ? OR name LIKE ? ORDER BY id DESC`;
+    // If searching, execute query scanning multiple fields
+    const sql = `
+      SELECT * FROM clients 
+      WHERE email LIKE ? 
+         OR name LIKE ? 
+         OR cpf LIKE ? 
+      ORDER BY id DESC 
+      LIMIT ?
+    `;
     const param = `%${queryVal}%`;
-    db.all(sql, [param, param], (err, rows) => {
+    db.all(sql, [param, param, param, limit], (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
     });
   } else {
-    db.all(`SELECT * FROM clients ORDER BY id DESC`, [], (err, rows) => {
+    db.all(`SELECT * FROM clients ORDER BY id DESC LIMIT ?`, [limit], (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
     });
@@ -38,16 +48,16 @@ app.get('/api/clients', (req, res) => {
 
 // POST /api/clients - Create client
 app.post('/api/clients', (req, res) => {
-  const { name, email, phone } = req.body;
+  const { name, email, phone, cpf } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: 'Name and Email are required.' });
   }
 
-  const sql = `INSERT INTO clients (name, email, phone) VALUES (?, ?, ?)`;
-  db.run(sql, [name, email, phone], function(err) {
+  const sql = `INSERT INTO clients (name, email, phone, cpf) VALUES (?, ?, ?, ?)`;
+  db.run(sql, [name, email, phone, cpf], function(err) {
     if (err) {
-      if (err.message.includes('UNIQUE constraint failed')) {
-        return res.status(400).json({ error: 'Email already exists.' });
+      if (err.message && err.message.includes('UNIQUE constraint failed')) {
+        return res.status(400).json({ error: 'Email or CPF already exists.' });
       }
       return res.status(500).json({ error: err.message });
     }

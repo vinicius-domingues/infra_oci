@@ -26,6 +26,7 @@ if (process.env.DB_HOST) {
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) NOT NULL UNIQUE,
       phone VARCHAR(50),
+      cpf VARCHAR(14) UNIQUE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `;
@@ -85,6 +86,7 @@ if (process.env.DB_HOST) {
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         phone TEXT,
+        cpf TEXT UNIQUE,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `, (err) => {

@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderClients(clients) {
     if (clients.length === 0) {
-      clientTableBody.innerHTML = `<tr><td colspan="6" class="table-placeholder">Nenhum cliente encontrado.</td></tr>`;
+      clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder">Nenhum cliente encontrado.</td></tr>`;
       return;
     }
 
@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${client.id}</td>
         <td><strong>${escapeHtml(client.name)}</strong></td>
         <td>${escapeHtml(client.email)}</td>
+        <td>${escapeHtml(client.cpf || '-')}</td>
         <td>${escapeHtml(client.phone || '-')}</td>
         <td>${new Date(client.created_at).toLocaleString()}</td>
         <td>
@@ -78,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const name = document.getElementById('name').value;
     const email = document.getElementById('email').value;
+    const cpf = document.getElementById('cpf').value;
     const phone = document.getElementById('phone').value;
     const delayVal = document.getElementById('delay').value || 0;
 
@@ -86,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`/api/clients?delay=${delayVal}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone })
+        body: JSON.stringify({ name, email, cpf, phone })
       });
 
       const duration = Math.round(performance.now() - startTime);
