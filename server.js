@@ -78,7 +78,7 @@ app.get('/api/clients', (req, res) => {
 
   if (name) {
     conditions.push("name LIKE ?");
-    params.push(`%${name}%`);
+    params.push(`${name}%`);
   }
   
   if (email) {
