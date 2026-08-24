@@ -106,7 +106,7 @@ Dentro do prompt do MySQL, execute as seguintes queries:
 CREATE DATABASE IF NOT EXISTS crud_db;
 
 -- Criar o usuário para acesso local (seguro)
-CREATE USER 'dbuser'@'localhost' IDENTIFIED BY 'suasenhamuitosegura';
+CREATE USER 'dbuser'@'localhost' IDENTIFIED BY '123';
 
 -- Dar permissões totais no banco para o usuário
 GRANT ALL PRIVILEGES ON crud_db.* TO 'dbuser'@'localhost';
@@ -123,7 +123,7 @@ Por segurança, **não abra** a porta `3306` do MySQL nas "Ingress Rules" (Secur
 Do seu terminal no computador local, execute:
 ```bash
 # Redireciona a porta 3306 do servidor remoto OCI para a porta 3306 no seu localhost
-ssh -L 3306:localhost:3306 -i /caminho/para/sua_chave.key ubuntu@<IP_PUBLICO_DA_VM>
+ssh -L 3306:localhost:3306 -i C:\Users\vinii\Downloads\ssh-key-2026-08-22 (1).key ubuntu@<140.238.180.128>
 ```
 
 Agora, no seu DBeaver/Workbench local, basta configurar a conexão para:
