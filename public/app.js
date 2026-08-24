@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const networkLatencyEl = document.getElementById('networkLatency');
   const executionPlanEl = document.getElementById('executionPlan');
   const executedQueryEl = document.getElementById('executedQuery');
+  const copyMetaBtn = document.getElementById('copyMetaBtn');
 
   // Pagination elements
   const prevPageBtn = document.getElementById('prevPageBtn');
@@ -378,6 +379,46 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Error updating client:', error);
       alert('Falha de conexão com o servidor.');
     }
+  });
+
+  // Copy Metadata Card to Clipboard
+  copyMetaBtn.addEventListener('click', () => {
+    const server = serverInstanceEl.textContent;
+    const db = databaseSourceEl.textContent;
+    const netTime = networkLatencyEl.textContent;
+    const queryTime = dbQueryTimeEl.textContent;
+    const totalTime = lastLatencyEl.textContent;
+    const query = executedQueryEl.textContent;
+    const plan = executionPlanEl.textContent;
+
+    const textToCopy = `Última Requisição
+Servidor:
+${server}
+Banco de Dados:
+${db}
+Latência (Rede):
+${netTime}
+Tempo de Banco (Query):
+${queryTime}
+Demora Total:
+${totalTime}
+Query Executada:
+${query}
+Plano de Execução:
+${plan}`;
+
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      const icon = copyMetaBtn.querySelector('i');
+      icon.className = 'fa-solid fa-check';
+      copyMetaBtn.classList.add('copied');
+      
+      setTimeout(() => {
+        icon.className = 'fa-regular fa-copy';
+        copyMetaBtn.classList.remove('copied');
+      }, 2000);
+    }).catch(err => {
+      console.error('Failed to copy text: ', err);
+    });
   });
 
   // Helper to escape HTML and prevent XSS

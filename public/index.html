@@ -31,7 +31,12 @@
 
       <!-- Connection/Server Info Panel -->
       <div class="meta-card">
-        <h3>Última Requisição</h3>
+        <div class="meta-card-header">
+          <h3>Última Requisição</h3>
+          <button id="copyMetaBtn" class="btn-copy" title="Copiar Métricas">
+            <i class="fa-regular fa-copy"></i>
+          </button>
+        </div>
         <div class="meta-item">
           <span class="meta-label"><i class="fa-solid fa-network-wired"></i> Servidor:</span>
           <span id="serverInstance" class="meta-val">--</span>
