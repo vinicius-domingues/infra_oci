@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const databaseSourceEl = document.getElementById('databaseSource');
   const lastLatencyEl = document.getElementById('lastLatency');
   const dbQueryTimeEl = document.getElementById('dbQueryTime');
+  const networkLatencyEl = document.getElementById('networkLatency');
 
   // Pagination elements
   const prevPageBtn = document.getElementById('prevPageBtn');
@@ -64,12 +65,31 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         dbQueryTimeEl.style.color = '#10b981';
       }
+      
+      // Calculate network latency (roundtrip minus database query time)
+      const netTime = Math.max(0, duration - qMs);
+      networkLatencyEl.textContent = `${netTime}ms`;
+      if (netTime > 300) {
+        networkLatencyEl.style.color = '#ef4444';
+      } else if (netTime > 100) {
+        networkLatencyEl.style.color = '#f59e0b';
+      } else {
+        networkLatencyEl.style.color = '#10b981';
+      }
     } else {
       dbQueryTimeEl.textContent = '--';
       dbQueryTimeEl.style.color = 'inherit';
+      networkLatencyEl.textContent = `${duration}ms`;
+      if (duration > 500) {
+        networkLatencyEl.style.color = '#ef4444';
+      } else if (duration > 150) {
+        networkLatencyEl.style.color = '#f59e0b';
+      } else {
+        networkLatencyEl.style.color = '#10b981';
+      }
     }
     
-    // Color code latency
+    // Color code total latency (demora total)
     if (duration > 500) {
       lastLatencyEl.style.color = '#ef4444'; // Red
     } else if (duration > 150) {
@@ -90,10 +110,12 @@ document.addEventListener('DOMContentLoaded', () => {
     logItem.className = `log-item ${method.toLowerCase()}`;
     
     const now = new Date().toLocaleTimeString();
-    const dbStr = queryTime !== null ? `Banco: ${queryTime}ms` : 'Banco: N/A';
+    const dbStr = queryTime !== null ? `${queryTime}ms` : 'N/A';
+    const netTime = queryTime !== null ? Math.max(0, duration - parseInt(queryTime)) : duration;
+    
     logItem.innerHTML = `
       <span>[${now}] <strong>${method}</strong> ${url} - Status: <span class="log-time">${status}</span></span>
-      <span class="log-time">${duration} ms (${dbStr} | ${server} | ${db})</span>
+      <span class="log-time">Total: ${duration}ms (Rede: ${netTime}ms | Banco: ${dbStr}) [${server} | ${db}]</span>
     `;
 
     logConsole.insertBefore(logItem, logConsole.firstChild);
