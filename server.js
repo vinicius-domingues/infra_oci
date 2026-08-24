@@ -114,7 +114,25 @@ app.get('/api/clients', (req, res) => {
       res.setHeader('X-Query-Time', `${dbDuration}`);
       
       if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
+      
+      const isMySQL = !!process.env.DB_HOST;
+      const explainSql = isMySQL ? `EXPLAIN ${sql}` : `EXPLAIN QUERY PLAN ${sql}`;
+      db.all(explainSql, params, (explainErr, explainRows) => {
+        let plan = '';
+        if (!explainErr && explainRows) {
+          if (isMySQL) {
+            plan = explainRows.map(row => 
+              `Table: ${row.table} | Type: ${row.type} | Key: ${row.key || 'NULL'} | Rows: ${row.rows} | Extra: ${row.Extra || ''}`
+            ).join('\n');
+          } else {
+            plan = explainRows.map(row => row.detail).join('\n');
+          }
+        } else {
+          plan = explainErr ? `Explain Error: ${explainErr.message}` : 'Plan unavailable';
+        }
+        res.setHeader('X-Execution-Plan', encodeURIComponent(plan));
+        res.json(rows);
+      });
     });
   } else {
     // If no search parameter, return empty list (do not auto-load 10 million clients on startup)

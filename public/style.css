@@ -576,3 +576,26 @@ tbody tr:hover {
 .page-indicator strong {
   color: var(--text-primary);
 }
+
+/* Explain Plan Preformat Styling */
+.explain-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.explain-pre {
+  background: rgba(9, 13, 22, 0.9);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.75rem;
+  color: #c084fc;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 140px;
+  overflow-y: auto;
+  margin-top: 0.25rem;
+  line-height: 1.3;
+}
