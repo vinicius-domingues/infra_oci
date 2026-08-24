@@ -45,6 +45,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentPage = 1;
 
+  // Edit Modal selectors
+  const editModal = document.getElementById('editModal');
+  const editForm = document.getElementById('editForm');
+  const editIdInput = document.getElementById('editId');
+  const editNameInput = document.getElementById('editName');
+  const editEmailInput = document.getElementById('editEmail');
+  const editCpfInput = document.getElementById('editCpf');
+  const editPhoneInput = document.getElementById('editPhone');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+
   // Update OCI request details in the sidebar panel
   function updateMetadata(headers, duration) {
     const serverName = headers.get('x-server-instance') || 'Desconhecido';
@@ -196,7 +206,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${escapeHtml(client.phone || '-')}</td>
         <td>${new Date(client.created_at).toLocaleString()}</td>
         <td>
-          <button class="btn-delete" data-id="${client.id}">Excluir</button>
+          <div class="table-actions">
+            <button class="btn-edit" data-id="${client.id}" data-name="${escapeHtml(client.name)}" data-email="${escapeHtml(client.email)}" data-cpf="${escapeHtml(client.cpf || '')}" data-phone="${escapeHtml(client.phone || '')}">Editar</button>
+            <button class="btn-delete" data-id="${client.id}">Excluir</button>
+          </div>
         </td>
       </tr>
     `).join('');
@@ -204,6 +217,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // Attach delete listeners
     document.querySelectorAll('.btn-delete').forEach(button => {
       button.addEventListener('click', () => deleteClient(button.getAttribute('data-id')));
+    });
+
+    // Attach edit listeners
+    document.querySelectorAll('.btn-edit').forEach(button => {
+      button.addEventListener('click', () => {
+        editIdInput.value = button.getAttribute('data-id');
+        editNameInput.value = button.getAttribute('data-name');
+        editEmailInput.value = button.getAttribute('data-email');
+        editCpfInput.value = button.getAttribute('data-cpf');
+        editPhoneInput.value = button.getAttribute('data-phone');
+        editModal.classList.add('active');
+      });
     });
   }
 
@@ -292,6 +317,51 @@ document.addEventListener('DOMContentLoaded', () => {
   nextPageBtn.addEventListener('click', () => {
     currentPage++;
     loadClients();
+  });
+
+  // Edit Modal Event Handlers
+  closeModalBtn.addEventListener('click', () => {
+    editModal.classList.remove('active');
+  });
+
+  window.addEventListener('click', (e) => {
+    if (e.target === editModal) {
+      editModal.classList.remove('active');
+    }
+  });
+
+  editForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = editIdInput.value;
+    const name = editNameInput.value;
+    const email = editEmailInput.value;
+    const cpf = editCpfInput.value;
+    const phone = editPhoneInput.value;
+    const delayVal = document.getElementById('delay') ? document.getElementById('delay').value : 0;
+
+    const startTime = performance.now();
+    try {
+      const response = await fetch(`/api/clients/${id}?delay=${delayVal}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, cpf, phone })
+      });
+
+      const duration = Math.round(performance.now() - startTime);
+      const { serverName, dbSource, queryTime } = updateMetadata(response.headers, duration);
+      logRequest('PUT', `/api/clients/${id}`, duration, response.status, serverName, dbSource, queryTime);
+
+      if (response.ok) {
+        editModal.classList.remove('active');
+        loadClients();
+      } else {
+        const err = await response.json();
+        alert(err.error || 'Erro ao editar cliente');
+      }
+    } catch (error) {
+      console.error('Error updating client:', error);
+      alert('Falha de conexão com o servidor.');
+    }
   });
 
   // Helper to escape HTML and prevent XSS

@@ -156,6 +156,27 @@ app.delete('/api/clients/:id', (req, res) => {
   });
 });
 
+// PUT /api/clients/:id - Update client
+app.put('/api/clients/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, email, phone, cpf } = req.body;
+  if (!name || !email) {
+    return res.status(400).json({ error: 'Name and Email are required.' });
+  }
+
+  const sql = `UPDATE clients SET name = ?, email = ?, phone = ?, cpf = ? WHERE id = ?`;
+  db.run(sql, [name, email, phone, cpf, id], function(err) {
+    if (err) {
+      if (err.message && err.message.includes('UNIQUE constraint failed')) {
+        return res.status(400).json({ error: 'Email or CPF already exists.' });
+      }
+      return res.status(500).json({ error: err.message });
+    }
+    if (this.changes === 0) return res.status(404).json({ error: 'Client not found.' });
+    res.json({ message: 'Client updated successfully.', id });
+  });
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
