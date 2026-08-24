@@ -37,6 +37,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const lastLatencyEl = document.getElementById('lastLatency');
   const dbQueryTimeEl = document.getElementById('dbQueryTime');
 
+  // Pagination elements
+  const prevPageBtn = document.getElementById('prevPageBtn');
+  const nextPageBtn = document.getElementById('nextPageBtn');
+  const currentPageNum = document.getElementById('currentPageNum');
+
+  let currentPage = 1;
+
   // Update OCI request details in the sidebar panel
   function updateMetadata(headers, duration) {
     const serverName = headers.get('x-server-instance') || 'Desconhecido';
@@ -119,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
       params.append('cpfStart', cpfStart);
       params.append('cpfEnd', cpfEnd);
     }
+    params.append('page', currentPage);
     params.append('delay', delayVal);
 
     const url = `/api/clients?${params.toString()}`;
@@ -133,12 +141,21 @@ document.addEventListener('DOMContentLoaded', () => {
       if (response.ok) {
         const clients = await response.json();
         renderClients(clients);
+        
+        // Update pagination UI
+        currentPageNum.textContent = currentPage;
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = clients.length < 10;
       } else {
         clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder" style="color:var(--danger-color)">Erro ao carregar clientes.</td></tr>`;
+        prevPageBtn.disabled = true;
+        nextPageBtn.disabled = true;
       }
     } catch (error) {
       console.error('Error fetching clients:', error);
       clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder" style="color:var(--danger-color)">Falha de conexão com o servidor.</td></tr>`;
+      prevPageBtn.disabled = true;
+      nextPageBtn.disabled = true;
     }
   }
 
@@ -228,6 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Trigger search on clicking the search button
   searchBtn.addEventListener('click', () => {
+    currentPage = 1;
     loadClients();
   });
 
@@ -235,9 +253,23 @@ document.addEventListener('DOMContentLoaded', () => {
   [searchName, searchEmail, searchCpf, searchCpfStart, searchCpfEnd].forEach(input => {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
+        currentPage = 1;
         loadClients();
       }
     });
+  });
+
+  // Pagination navigation listeners
+  prevPageBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      loadClients();
+    }
+  });
+
+  nextPageBtn.addEventListener('click', () => {
+    currentPage++;
+    loadClients();
   });
 
   // Helper to escape HTML and prevent XSS

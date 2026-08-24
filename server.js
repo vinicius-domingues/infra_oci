@@ -57,7 +57,9 @@ app.use((req, res, next) => {
 // GET /api/clients - List clients (with limit and search by name, email or cpf)
 app.get('/api/clients', (req, res) => {
   let { search, name, email, cpf, cpfStart, cpfEnd } = req.query;
-  const limit = parseInt(req.query.limit) || 50; // default to 50 for performance
+  const limit = 10; // fixed at 10 for requested pagination
+  const page = parseInt(req.query.page) || 1;
+  const offset = (page - 1) * limit;
   
   // fallback for compatibility
   if (search && !name && !email && !cpf && !cpfStart && !cpfEnd) {
@@ -103,8 +105,8 @@ app.get('/api/clients', (req, res) => {
   }
 
   if (conditions.length > 0) {
-    const sql = `SELECT * FROM clients WHERE ${conditions.join(' AND ')} LIMIT ?`;
-    params.push(limit);
+    const sql = `SELECT * FROM clients WHERE ${conditions.join(' AND ')} LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
 
     const dbStart = Date.now();
     db.all(sql, params, (err, rows) => {
