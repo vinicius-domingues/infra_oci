@@ -106,7 +106,11 @@ app.get('/api/clients', (req, res) => {
     const sql = `SELECT * FROM clients WHERE ${conditions.join(' AND ')} LIMIT ?`;
     params.push(limit);
 
+    const dbStart = Date.now();
     db.all(sql, params, (err, rows) => {
+      const dbDuration = Date.now() - dbStart;
+      res.setHeader('X-Query-Time', `${dbDuration}`);
+      
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
     });

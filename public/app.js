@@ -35,15 +35,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const serverInstanceEl = document.getElementById('serverInstance');
   const databaseSourceEl = document.getElementById('databaseSource');
   const lastLatencyEl = document.getElementById('lastLatency');
+  const dbQueryTimeEl = document.getElementById('dbQueryTime');
 
   // Update OCI request details in the sidebar panel
   function updateMetadata(headers, duration) {
     const serverName = headers.get('x-server-instance') || 'Desconhecido';
     const dbSource = headers.get('x-database-source') || 'Desconhecido';
+    const queryTime = headers.get('x-query-time');
     
     serverInstanceEl.textContent = serverName;
     databaseSourceEl.textContent = dbSource;
     lastLatencyEl.textContent = `${duration}ms`;
+    
+    if (queryTime !== null) {
+      dbQueryTimeEl.textContent = `${queryTime}ms`;
+      const qMs = parseInt(queryTime);
+      if (qMs > 300) {
+        dbQueryTimeEl.style.color = '#ef4444';
+      } else if (qMs > 100) {
+        dbQueryTimeEl.style.color = '#f59e0b';
+      } else {
+        dbQueryTimeEl.style.color = '#10b981';
+      }
+    } else {
+      dbQueryTimeEl.textContent = '--';
+      dbQueryTimeEl.style.color = 'inherit';
+    }
     
     // Color code latency
     if (duration > 500) {
@@ -54,11 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
       lastLatencyEl.style.color = '#10b981'; // Green
     }
     
-    return { serverName, dbSource };
+    return { serverName, dbSource, queryTime };
   }
 
   // Helper to log actions in the UI Console
-  function logRequest(method, url, duration, status, server, db) {
+  function logRequest(method, url, duration, status, server, db, queryTime = null) {
     const placeholder = logConsole.querySelector('.log-placeholder');
     if (placeholder) placeholder.remove();
 
@@ -66,9 +83,10 @@ document.addEventListener('DOMContentLoaded', () => {
     logItem.className = `log-item ${method.toLowerCase()}`;
     
     const now = new Date().toLocaleTimeString();
+    const dbStr = queryTime !== null ? `Banco: ${queryTime}ms` : 'Banco: N/A';
     logItem.innerHTML = `
       <span>[${now}] <strong>${method}</strong> ${url} - Status: <span class="log-time">${status}</span></span>
-      <span class="log-time">${duration} ms (${server} | ${db})</span>
+      <span class="log-time">${duration} ms (${dbStr} | ${server} | ${db})</span>
     `;
 
     logConsole.insertBefore(logItem, logConsole.firstChild);
@@ -109,8 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(url);
       const duration = Math.round(performance.now() - startTime);
       
-      const { serverName, dbSource } = updateMetadata(response.headers, duration);
-      logRequest('GET', `/api/clients?${params.toString().substring(0, 30)}...`, duration, response.status, serverName, dbSource);
+      const { serverName, dbSource, queryTime } = updateMetadata(response.headers, duration);
+      logRequest('GET', `/api/clients?${params.toString().substring(0, 30)}...`, duration, response.status, serverName, dbSource, queryTime);
 
       if (response.ok) {
         const clients = await response.json();
