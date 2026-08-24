@@ -100,39 +100,59 @@ async function generateData() {
       });
     });
 
-    console.log('Populating SQLite with 10M rows in memory-efficient batches...');
+    console.log('Populating SQLite with 10M rows using fast multi-row inserts...');
     
-    // We execute in large transactions to ensure write speed, but insert chunk-by-chunk to keep memory low
     await runQuery(db, 'BEGIN TRANSACTION;');
 
     try {
-      const stmt = db.prepare('INSERT INTO clients (name, email, phone, cpf) VALUES (?, ?, ?, ?)');
+      // SQLite parameter limit is 999, so we insert 200 rows (800 parameters) per query
+      const SQLITE_INSERT_BATCH = 200;
       
-      for (let i = 0; i < TOTAL_CLIENTS; i += BATCH_SIZE) {
-        const chunkLimit = Math.min(BATCH_SIZE, TOTAL_CLIENTS - i);
+      // Pre-compile the insert query for SQLITE_INSERT_BATCH rows
+      const placeholders = Array(SQLITE_INSERT_BATCH).fill('(?, ?, ?, ?)').join(', ');
+      const insertSql = `INSERT INTO clients (name, email, phone, cpf) VALUES ${placeholders}`;
+      const stmt = db.prepare(insertSql);
+
+      for (let i = 0; i < TOTAL_CLIENTS; i += SQLITE_INSERT_BATCH) {
+        const chunkLimit = Math.min(SQLITE_INSERT_BATCH, TOTAL_CLIENTS - i);
         
-        // Use an array of promises for this batch to throttle execution and keep event loop clean
-        const promises = [];
-        for (let j = 0; j < chunkLimit; j++) {
-          const k = i + j + 1;
-          const name = `Cliente ${k}`;
-          const email = `cliente${k}@exemplo.com`;
-          const phone = `(11) 9${String(k).padStart(8, '0')}`.substring(0, 15);
-          const cpf = `${String(k).padStart(11, '0')}`;
+        if (chunkLimit === SQLITE_INSERT_BATCH) {
+          const params = [];
+          for (let j = 0; j < chunkLimit; j++) {
+            const k = i + j + 1;
+            params.push(
+              `Cliente ${k}`,
+              `cliente${k}@exemplo.com`,
+              `(11) 9${String(k).padStart(8, '0')}`.substring(0, 15),
+              `${String(k).padStart(11, '0')}`
+            );
+          }
           
-          promises.push(new Promise((res, rej) => {
-            stmt.run(name, email, phone, cpf, (err) => {
-              if (err) rej(err);
-              else res();
+          await new Promise((resolve, reject) => {
+            stmt.run(params, (err) => {
+              if (err) reject(err);
+              else resolve();
             });
-          }));
+          });
+        } else {
+          // Handle the last remaining rows that don't fill a whole batch of 200
+          const remainingPlaceholders = Array(chunkLimit).fill('(?, ?, ?, ?)').join(', ');
+          const remainingSql = `INSERT INTO clients (name, email, phone, cpf) VALUES ${remainingPlaceholders}`;
+          const params = [];
+          for (let j = 0; j < chunkLimit; j++) {
+            const k = i + j + 1;
+            params.push(
+              `Cliente ${k}`,
+              `cliente${k}@exemplo.com`,
+              `(11) 9${String(k).padStart(8, '0')}`.substring(0, 15),
+              `${String(k).padStart(11, '0')}`
+            );
+          }
+          await runQuery(db, remainingSql, params);
         }
-        
-        // Wait for current batch to be fully queued/run in SQLite before generating next batch
-        await Promise.all(promises);
 
         const progress = i + chunkLimit;
-        if (progress % 100000 === 0) {
+        if (progress % 500000 === 0) {
           console.log(`Inserted ${progress}/${TOTAL_CLIENTS} clients in SQLite...`);
         }
       }
