@@ -407,7 +407,7 @@ ${query}
 Plano de Execução:
 ${plan}`;
 
-    navigator.clipboard.writeText(textToCopy).then(() => {
+    writeToClipboard(textToCopy).then(() => {
       const icon = copyMetaBtn.querySelector('i');
       icon.className = 'fa-solid fa-check';
       copyMetaBtn.classList.add('copied');
@@ -418,6 +418,7 @@ ${plan}`;
       }, 2000);
     }).catch(err => {
       console.error('Failed to copy text: ', err);
+      alert('Não foi possível copiar automaticamente no seu navegador. Por favor, copie manualmente.');
     });
   });
 
@@ -430,5 +431,35 @@ ${plan}`;
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  // Helper to copy text to clipboard with legacy HTTP fallback
+  function writeToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text);
+    } else {
+      return new Promise((resolve, reject) => {
+        try {
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.top = "0";
+          textArea.style.left = "0";
+          textArea.style.position = "fixed";
+          textArea.style.opacity = "0";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          const successful = document.execCommand('copy');
+          document.body.removeChild(textArea);
+          if (successful) {
+            resolve();
+          } else {
+            reject(new Error('Fallback copy command failed'));
+          }
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
   }
 });

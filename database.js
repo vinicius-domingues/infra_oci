@@ -36,6 +36,14 @@ if (process.env.DB_HOST) {
       console.error('Error creating MySQL clients table:', err.message);
     } else {
       console.log('MySQL clients table verified/created.');
+      // Create index if not exists on MySQL
+      db.query(`CREATE INDEX idx_clients_name ON clients(name)`, (idxErr) => {
+        if (idxErr && idxErr.code !== 'ER_DUP_KEYNAME') {
+          console.error('Error creating MySQL index on name:', idxErr.message);
+        } else {
+          console.log('MySQL index on name verified/created.');
+        }
+      });
     }
   });
 
@@ -94,6 +102,10 @@ if (process.env.DB_HOST) {
         console.error('Error creating SQLite table:', err.message);
       } else {
         console.log('SQLite clients table ready.');
+        db.run(`CREATE INDEX IF NOT EXISTS idx_clients_name ON clients(name)`, (idxErr) => {
+          if (idxErr) console.error('Error creating SQLite name index:', idxErr.message);
+          else console.log('SQLite name index ready.');
+        });
       }
     });
   });
