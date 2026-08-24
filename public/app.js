@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load clients with response-time monitoring
   async function loadClients(search = '') {
+    if (search.trim() === '') {
+      clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder">Digite um termo no campo de busca acima para pesquisar.</td></tr>`;
+      return;
+    }
+
     const startTime = performance.now();
     const delayVal = document.getElementById('delay').value || 0;
     const url = `/api/clients?search=${encodeURIComponent(search)}&delay=${delayVal}`;
@@ -149,7 +154,4 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
-
-  // Initial Load
-  loadClients();
 });

@@ -57,10 +57,8 @@ app.get('/api/clients', (req, res) => {
       res.json(rows);
     });
   } else {
-    db.all(`SELECT * FROM clients ORDER BY id DESC LIMIT ?`, [limit], (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json(rows);
-    });
+    // If no search parameter, return empty list (do not auto-load 1 million clients on startup)
+    res.json([]);
   }
 });
 
