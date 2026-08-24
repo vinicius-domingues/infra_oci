@@ -24,17 +24,35 @@ app.get('/api/clients', (req, res) => {
   const limit = parseInt(req.query.limit) || 50; // default to 50 for performance
   
   if (queryVal) {
-    // If searching, execute query scanning multiple fields
-    const sql = `
-      SELECT * FROM clients 
-      WHERE email LIKE ? 
-         OR name LIKE ? 
-         OR cpf LIKE ? 
-      ORDER BY id DESC 
-      LIMIT ?
-    `;
-    const param = `%${queryVal}%`;
-    db.all(sql, [param, param, param, limit], (err, rows) => {
+    // If the search looks like a numeric CPF (only digits or standard length), do an exact match to test indexing
+    const isNumeric = /^\d+$/.test(queryVal.replace(/[-.]/g, ''));
+    
+    let sql;
+    let params;
+    
+    if (isNumeric) {
+      // Exact match for CPF to let the database optimizer use index, otherwise scan name/email
+      sql = `
+        SELECT * FROM clients 
+        WHERE cpf = ?
+           OR email = ?
+        LIMIT ?
+      `;
+      const cleanCpf = queryVal.replace(/[-.]/g, '');
+      params = [cleanCpf, queryVal, limit];
+    } else {
+      sql = `
+        SELECT * FROM clients 
+        WHERE email LIKE ? 
+           OR name LIKE ? 
+        ORDER BY id DESC 
+        LIMIT ?
+      `;
+      const pattern = `%${queryVal}%`;
+      params = [pattern, pattern, limit];
+    }
+
+    db.all(sql, params, (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
     });
