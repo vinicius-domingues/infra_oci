@@ -1,15 +1,51 @@
 const express = require('express');
 const path = require('path');
+const os = require('os');
+const fs = require('fs');
 const db = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Ensure log directory exists
+const logDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir);
+}
+
+// Simple file logger helper
+function writeLog(message) {
+  const timestamp = new Date().toISOString();
+  const logLine = `[${timestamp}] ${message}\n`;
+  fs.appendFile(path.join(logDir, 'app.log'), logLine, (err) => {
+    if (err) console.error('Failed to write log:', err);
+  });
+}
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware to inject an artificial delay if requested
+// Middleware to inject server and database metadata headers
 app.use((req, res, next) => {
+  res.setHeader('X-Server-Instance', os.hostname());
+  res.setHeader('X-Database-Source', process.env.DB_HOST ? `MySQL (${process.env.DB_HOST})` : 'SQLite (clients.db)');
+  next();
+});
+
+// Middleware to log requests to logs/app.log and inject delay
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    const dbType = process.env.DB_HOST ? `MySQL (${process.env.DB_HOST})` : 'SQLite (clients.db)';
+    const serverName = os.hostname();
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    
+    const logMsg = `${clientIp} - ${req.method} ${req.originalUrl} - Status: ${res.statusCode} - Time: ${duration}ms - Server: ${serverName} - DB: ${dbType}`;
+    writeLog(logMsg);
+  });
+
   const delay = parseInt(req.query.delay) || 0;
   if (delay > 0) {
     setTimeout(next, delay);

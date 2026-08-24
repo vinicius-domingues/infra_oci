@@ -2,3 +2,5 @@ node_modules
 clients.db
 .DS_Store
 .env
+logs/
+*.log

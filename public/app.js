@@ -1,14 +1,60 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Navigation Tabs
+  const menuItems = document.querySelectorAll('.menu-item');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  menuItems.forEach(item => {
+    item.addEventListener('click', () => {
+      // Remove active from all items
+      menuItems.forEach(i => i.classList.remove('active'));
+      // Add active to current
+      item.classList.add('active');
+      
+      // Hide all tabs
+      tabContents.forEach(tab => tab.classList.remove('active'));
+      // Show correct tab
+      const targetTab = document.getElementById(item.getAttribute('data-tab'));
+      if (targetTab) {
+        targetTab.classList.add('active');
+      }
+    });
+  });
+
+  // Client CRUD selectors
   const clientForm = document.getElementById('clientForm');
   const searchInput = document.getElementById('searchInput');
+  const searchBtn = document.getElementById('searchBtn');
   const clientTableBody = document.getElementById('clientTableBody');
   const logConsole = document.getElementById('logConsole');
-  const getLastTime = document.getElementById('getLastTime');
-  const postLastTime = document.getElementById('postLastTime');
+  
+  // OCI Meta indicators
+  const serverInstanceEl = document.getElementById('serverInstance');
+  const databaseSourceEl = document.getElementById('databaseSource');
+  const lastLatencyEl = document.getElementById('lastLatency');
 
-  // Helper to log action and duration
-  function logRequest(method, url, duration, status) {
-    // Remove placeholder
+  // Update OCI request details in the sidebar panel
+  function updateMetadata(headers, duration) {
+    const serverName = headers.get('x-server-instance') || 'Desconhecido';
+    const dbSource = headers.get('x-database-source') || 'Desconhecido';
+    
+    serverInstanceEl.textContent = serverName;
+    databaseSourceEl.textContent = dbSource;
+    lastLatencyEl.textContent = `${duration}ms`;
+    
+    // Color code latency
+    if (duration > 500) {
+      lastLatencyEl.style.color = '#ef4444'; // Red
+    } else if (duration > 150) {
+      lastLatencyEl.style.color = '#f59e0b'; // Amber
+    } else {
+      lastLatencyEl.style.color = '#10b981'; // Green
+    }
+    
+    return { serverName, dbSource };
+  }
+
+  // Helper to log actions in the UI Console
+  function logRequest(method, url, duration, status, server, db) {
     const placeholder = logConsole.querySelector('.log-placeholder');
     if (placeholder) placeholder.remove();
 
@@ -17,39 +63,42 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const now = new Date().toLocaleTimeString();
     logItem.innerHTML = `
-      <span>[${now}] <strong>${method}</strong> ${url} - <span class="log-time">${status}</span></span>
-      <span class="log-time">${duration} ms</span>
+      <span>[${now}] <strong>${method}</strong> ${url} - Status: <span class="log-time">${status}</span></span>
+      <span class="log-time">${duration} ms (${server} | ${db})</span>
     `;
 
     logConsole.insertBefore(logItem, logConsole.firstChild);
   }
 
-  // Load clients with response-time monitoring
+  // Load clients when clicking search button
   async function loadClients(search = '') {
     if (search.trim() === '') {
-      clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder">Digite um termo no campo de busca acima para pesquisar.</td></tr>`;
+      clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder">Por favor, digite um termo de busca e clique na lupa.</td></tr>`;
       return;
     }
 
+    clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder"><i class="fa-solid fa-spinner fa-spin"></i> Buscando clientes...</td></tr>`;
+
     const startTime = performance.now();
-    const delayVal = document.getElementById('delay').value || 0;
+    const delayVal = document.getElementById('delay') ? document.getElementById('delay').value : 0;
     const url = `/api/clients?search=${encodeURIComponent(search)}&delay=${delayVal}`;
 
     try {
       const response = await fetch(url);
       const duration = Math.round(performance.now() - startTime);
       
-      getLastTime.textContent = `${duration}ms`;
-      getLastTime.style.color = duration > 200 ? '#f59e0b' : '#10b981'; // warning color if slow
-
-      logRequest('GET', `/api/clients`, duration, response.status);
+      const { serverName, dbSource } = updateMetadata(response.headers, duration);
+      logRequest('GET', `/api/clients`, duration, response.status, serverName, dbSource);
 
       if (response.ok) {
         const clients = await response.json();
         renderClients(clients);
+      } else {
+        clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder" style="color:var(--danger-color)">Erro ao carregar clientes.</td></tr>`;
       }
     } catch (error) {
       console.error('Error fetching clients:', error);
+      clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder" style="color:var(--danger-color)">Falha de conexão com o servidor.</td></tr>`;
     }
   }
 
@@ -79,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Register a client with response-time monitoring
+  // Register client
   clientForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = document.getElementById('name').value;
@@ -97,24 +146,23 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       const duration = Math.round(performance.now() - startTime);
-      postLastTime.textContent = `${duration}ms`;
-      postLastTime.style.color = duration > 200 ? '#f59e0b' : '#10b981';
-
-      logRequest('POST', '/api/clients', duration, response.status);
+      const { serverName, dbSource } = updateMetadata(response.headers, duration);
+      logRequest('POST', '/api/clients', duration, response.status, serverName, dbSource);
 
       if (response.ok) {
         clientForm.reset();
-        loadClients();
+        alert('Cliente cadastrado com sucesso!');
       } else {
         const err = await response.json();
         alert(err.error || 'Erro ao cadastrar cliente');
       }
     } catch (error) {
       console.error('Error creating client:', error);
+      alert('Falha de conexão com o servidor.');
     }
   });
 
-  // Delete a client with response-time monitoring
+  // Delete client
   async function deleteClient(id) {
     if (!confirm('Deseja realmente excluir este cliente?')) return;
     
@@ -123,25 +171,31 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`/api/clients/${id}`, { method: 'DELETE' });
       const duration = Math.round(performance.now() - startTime);
 
-      logRequest('DELETE', `/api/clients/${id}`, duration, response.status);
+      const { serverName, dbSource } = updateMetadata(response.headers, duration);
+      logRequest('DELETE', `/api/clients/${id}`, duration, response.status, serverName, dbSource);
 
       if (response.ok) {
-        loadClients();
+        // Reload list with current search term
+        loadClients(searchInput.value);
       } else {
         alert('Erro ao excluir cliente');
       }
     } catch (error) {
       console.error('Error deleting client:', error);
+      alert('Falha de conexão com o servidor.');
     }
   }
 
-  // Search filter
-  let searchTimeout;
-  searchInput.addEventListener('input', (e) => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      loadClients(e.target.value);
-    }, 300);
+  // Trigger search on clicking the magnifying glass button
+  searchBtn.addEventListener('click', () => {
+    loadClients(searchInput.value);
+  });
+
+  // Trigger search on pressing Enter key
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      loadClients(searchInput.value);
+    }
   });
 
   // Helper to escape HTML and prevent XSS
