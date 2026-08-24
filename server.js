@@ -130,6 +130,7 @@ app.get('/api/clients', (req, res) => {
         } else {
           plan = explainErr ? `Explain Error: ${explainErr.message}` : 'Plan unavailable';
         }
+        res.setHeader('X-Executed-Query', encodeURIComponent(`${sql} [Params: ${params.map(p => typeof p === 'string' ? `'${p}'` : p).join(', ')}]`));
         res.setHeader('X-Execution-Plan', encodeURIComponent(plan));
         res.json(rows);
       });

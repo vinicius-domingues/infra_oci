@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const dbQueryTimeEl = document.getElementById('dbQueryTime');
   const networkLatencyEl = document.getElementById('networkLatency');
   const executionPlanEl = document.getElementById('executionPlan');
+  const executedQueryEl = document.getElementById('executedQuery');
 
   // Pagination elements
   const prevPageBtn = document.getElementById('prevPageBtn');
@@ -62,9 +63,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const dbSource = headers.get('x-database-source') || 'Desconhecido';
     const queryTime = headers.get('x-query-time');
     const explainPlan = headers.get('x-execution-plan');
+    const executedQuery = headers.get('x-executed-query');
     
     serverInstanceEl.textContent = serverName;
     databaseSourceEl.textContent = dbSource;
+    
+    if (executedQuery) {
+      executedQueryEl.textContent = decodeURIComponent(executedQuery);
+    } else {
+      executedQueryEl.textContent = '--';
+    }
     
     if (explainPlan) {
       executionPlanEl.textContent = decodeURIComponent(explainPlan);
