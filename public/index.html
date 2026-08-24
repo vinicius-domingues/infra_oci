@@ -102,10 +102,32 @@
         <div class="card list-card">
           <div class="list-header">
             <h2><i class="fa-solid fa-list-check"></i> Consulta de Clientes</h2>
-            <div class="search-container">
-              <input type="text" id="searchInput" placeholder="Buscar por CPF, E-mail ou Nome...">
-              <button id="searchBtn" class="btn-search" title="Buscar">
-                <i class="fa-solid fa-magnifying-glass"></i>
+          </div>
+          
+          <div class="search-form-grid">
+            <div class="search-field-group">
+              <label for="searchName">Nome</label>
+              <input type="text" id="searchName" placeholder="Buscar por nome...">
+            </div>
+            <div class="search-field-group">
+              <label for="searchEmail">E-mail</label>
+              <input type="text" id="searchEmail" placeholder="Buscar por e-mail...">
+            </div>
+            <div class="search-field-group">
+              <label for="searchCpf">CPF</label>
+              <input type="text" id="searchCpf" placeholder="Buscar por CPF...">
+            </div>
+            <div class="search-field-group">
+              <label for="searchCpfStart">CPF Inicial</label>
+              <input type="text" id="searchCpfStart" placeholder="Ex: 00000000001">
+            </div>
+            <div class="search-field-group">
+              <label for="searchCpfEnd">CPF Final</label>
+              <input type="text" id="searchCpfEnd" placeholder="Ex: 00000500000">
+            </div>
+            <div class="search-field-group button-group">
+              <button id="searchBtn" class="btn-search-large" title="Buscar">
+                <i class="fa-solid fa-magnifying-glass"></i> Buscar
               </button>
             </div>
           </div>

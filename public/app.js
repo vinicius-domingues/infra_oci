@@ -22,7 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Client CRUD selectors
   const clientForm = document.getElementById('clientForm');
-  const searchInput = document.getElementById('searchInput');
+  const searchName = document.getElementById('searchName');
+  const searchEmail = document.getElementById('searchEmail');
+  const searchCpf = document.getElementById('searchCpf');
+  const searchCpfStart = document.getElementById('searchCpfStart');
+  const searchCpfEnd = document.getElementById('searchCpfEnd');
   const searchBtn = document.getElementById('searchBtn');
   const clientTableBody = document.getElementById('clientTableBody');
   const logConsole = document.getElementById('logConsole');
@@ -71,9 +75,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Load clients when clicking search button
-  async function loadClients(search = '') {
-    if (search.trim() === '') {
-      clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder">Por favor, digite um termo de busca e clique na lupa.</td></tr>`;
+  async function loadClients() {
+    const name = searchName.value.trim();
+    const email = searchEmail.value.trim();
+    const cpf = searchCpf.value.trim();
+    const cpfStart = searchCpfStart.value.trim();
+    const cpfEnd = searchCpfEnd.value.trim();
+
+    if (!name && !email && !cpf && (!cpfStart || !cpfEnd)) {
+      clientTableBody.innerHTML = `<tr><td colspan="7" class="table-placeholder">Por favor, preencha pelo menos um campo de busca e clique em Buscar.</td></tr>`;
       return;
     }
 
@@ -81,14 +91,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const startTime = performance.now();
     const delayVal = document.getElementById('delay') ? document.getElementById('delay').value : 0;
-    const url = `/api/clients?search=${encodeURIComponent(search)}&delay=${delayVal}`;
+    
+    // Build query params
+    const params = new URLSearchParams();
+    if (name) params.append('name', name);
+    if (email) params.append('email', email);
+    if (cpf) params.append('cpf', cpf);
+    if (cpfStart && cpfEnd) {
+      params.append('cpfStart', cpfStart);
+      params.append('cpfEnd', cpfEnd);
+    }
+    params.append('delay', delayVal);
+
+    const url = `/api/clients?${params.toString()}`;
 
     try {
       const response = await fetch(url);
       const duration = Math.round(performance.now() - startTime);
       
       const { serverName, dbSource } = updateMetadata(response.headers, duration);
-      logRequest('GET', `/api/clients`, duration, response.status, serverName, dbSource);
+      logRequest('GET', `/api/clients?${params.toString().substring(0, 30)}...`, duration, response.status, serverName, dbSource);
 
       if (response.ok) {
         const clients = await response.json();
@@ -175,8 +197,8 @@ document.addEventListener('DOMContentLoaded', () => {
       logRequest('DELETE', `/api/clients/${id}`, duration, response.status, serverName, dbSource);
 
       if (response.ok) {
-        // Reload list with current search term
-        loadClients(searchInput.value);
+        // Reload list
+        loadClients();
       } else {
         alert('Erro ao excluir cliente');
       }
@@ -186,16 +208,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Trigger search on clicking the magnifying glass button
+  // Trigger search on clicking the search button
   searchBtn.addEventListener('click', () => {
-    loadClients(searchInput.value);
+    loadClients();
   });
 
-  // Trigger search on pressing Enter key
-  searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      loadClients(searchInput.value);
-    }
+  // Trigger search on pressing Enter key on any input
+  [searchName, searchEmail, searchCpf, searchCpfStart, searchCpfEnd].forEach(input => {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        loadClients();
+      }
+    });
   });
 
   // Helper to escape HTML and prevent XSS

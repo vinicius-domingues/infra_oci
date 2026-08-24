@@ -56,44 +56,62 @@ app.use((req, res, next) => {
 
 // GET /api/clients - List clients (with limit and search by name, email or cpf)
 app.get('/api/clients', (req, res) => {
-  const queryVal = req.query.search;
+  let { search, name, email, cpf, cpfStart, cpfEnd } = req.query;
   const limit = parseInt(req.query.limit) || 50; // default to 50 for performance
   
-  if (queryVal) {
-    // If the search looks like a numeric CPF (only digits or standard length), do an exact match to test indexing
-    const isNumeric = /^\d+$/.test(queryVal.replace(/[-.]/g, ''));
-    
-    let sql;
-    let params;
-    
+  // fallback for compatibility
+  if (search && !name && !email && !cpf && !cpfStart && !cpfEnd) {
+    const isNumeric = /^\d+$/.test(search.replace(/[-.]/g, ''));
     if (isNumeric) {
-      // Exact match for CPF to let the database optimizer use index, otherwise scan name/email
-      sql = `
-        SELECT * FROM clients 
-        WHERE cpf = ?
-           OR email = ?
-        LIMIT ?
-      `;
-      const cleanCpf = queryVal.replace(/[-.]/g, '');
-      params = [cleanCpf, queryVal, limit];
+      cpf = search;
+    } else if (search.includes('@')) {
+      email = search;
     } else {
-      sql = `
-        SELECT * FROM clients 
-        WHERE email LIKE ? 
-           OR name LIKE ? 
-        ORDER BY id DESC 
-        LIMIT ?
-      `;
-      const pattern = `%${queryVal}%`;
-      params = [pattern, pattern, limit];
+      name = search;
     }
+  }
+
+  let conditions = [];
+  let params = [];
+
+  if (name) {
+    conditions.push("name LIKE ?");
+    params.push(`%${name}%`);
+  }
+  
+  if (email) {
+    // Leading wildcard forces a full table scan, bypassing the unique index on email
+    conditions.push("email LIKE ?");
+    params.push(`%${email}%`);
+  }
+  
+  if (cpf) {
+    const cleanCpf = cpf.replace(/[-.]/g, '');
+    conditions.push("cpf = ?");
+    params.push(cleanCpf);
+  }
+  
+  if (cpfStart && cpfEnd) {
+    const cleanStart = cpfStart.replace(/[-.]/g, '');
+    const cleanEnd = cpfEnd.replace(/[-.]/g, '');
+    const isMySQL = !!process.env.DB_HOST;
+    const castType = isMySQL ? 'UNSIGNED' : 'INTEGER';
+    
+    // Applying function conversions on the column forces a full table scan on 10M rows
+    conditions.push(`CAST(REPLACE(REPLACE(cpf, '.', ''), '-', '') AS ${castType}) BETWEEN CAST(? AS ${castType}) AND CAST(? AS ${castType})`);
+    params.push(cleanStart, cleanEnd);
+  }
+
+  if (conditions.length > 0) {
+    const sql = `SELECT * FROM clients WHERE ${conditions.join(' AND ')} LIMIT ?`;
+    params.push(limit);
 
     db.all(sql, params, (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
     });
   } else {
-    // If no search parameter, return empty list (do not auto-load 1 million clients on startup)
+    // If no search parameter, return empty list (do not auto-load 10 million clients on startup)
     res.json([]);
   }
 });
